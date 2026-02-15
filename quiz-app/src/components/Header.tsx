@@ -1,9 +1,6 @@
 interface HeaderProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
-  canVerify: boolean;
-  onVerify: () => void;
-  isVerifying: boolean;
   assignedCount: number;
   totalMembers: number;
 }
@@ -11,9 +8,6 @@ interface HeaderProps {
 export default function Header({
   soundEnabled,
   onToggleSound,
-  canVerify,
-  onVerify,
-  isVerifying,
   assignedCount,
   totalMembers,
 }: HeaderProps) {
@@ -43,17 +37,6 @@ export default function Header({
           />
         </div>
         <span className="text-xs text-text-muted flex-shrink-0">{assignedCount}/{totalMembers}</span>
-        <button
-          onClick={onVerify}
-          disabled={!canVerify}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 flex-shrink-0 ${
-            canVerify
-              ? 'bg-gold text-bg hover:bg-gold-light active:scale-95'
-              : 'bg-bg-tertiary text-text-muted cursor-not-allowed'
-          }`}
-        >
-          {isVerifying ? '...' : 'Verificar'}
-        </button>
       </div>
     </div>
   );

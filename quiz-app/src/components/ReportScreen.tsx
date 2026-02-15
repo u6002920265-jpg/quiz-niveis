@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReportModal from './ReportModal';
 import type { LeaderboardEntry } from '../hooks/useQuizState';
+import { launchConfetti } from '../utils/confetti';
 
 interface ReportScreenProps {
   currentScore: number;
@@ -22,6 +23,12 @@ export default function ReportScreen({
   const [showReport, setShowReport] = useState(false);
   const isPerfect = scorePercentage === 100;
   const canViewReport = scorePercentage >= 90;
+
+  useEffect(() => {
+    if (isPerfect) {
+      launchConfetti();
+    }
+  }, [isPerfect]);
 
   // Find this player's ranking position (most recent entry for this name)
   const rankIndex = leaderboard.findIndex(

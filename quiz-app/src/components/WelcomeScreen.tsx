@@ -42,7 +42,7 @@ export default function WelcomeScreen({ onStart, allTimeBestScore, hasSavedState
             </li>
             <li className="flex gap-2">
               <span className="text-gold">2.</span>
-              <span>Quando todos os 21 nomes estiverem colocados, clique em <strong className="text-text">"Verificar"</strong>.</span>
+              <span>Quando todos os 21 nomes estiverem colocados, o resultado é <strong className="text-text">verificado automaticamente</strong>.</span>
             </li>
             <li className="flex gap-2">
               <span className="text-gold">3.</span>

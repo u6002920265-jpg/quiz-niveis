@@ -160,6 +160,14 @@ export default function QuizScreen({
     }
   };
 
+  // Auto-verify when all names are assigned
+  useEffect(() => {
+    if (canVerify && !isVerifying) {
+      const timer = setTimeout(() => onVerify(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [canVerify, isVerifying, onVerify]);
+
   // Handle verify animation
   useEffect(() => {
     if (isVerifying && lastVerifyResult) {
@@ -199,9 +207,6 @@ export default function QuizScreen({
       <Header
         soundEnabled={soundEnabled}
         onToggleSound={onToggleSound}
-        canVerify={canVerify}
-        onVerify={onVerify}
-        isVerifying={isVerifying}
         assignedCount={assignedCount}
         totalMembers={totalMembers}
       />
