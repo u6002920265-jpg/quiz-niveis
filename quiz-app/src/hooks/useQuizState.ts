@@ -6,7 +6,6 @@ import { submitScore, fetchLeaderboard } from '../utils/api';
 
 const QUIZ_STATE_KEY = 'quiz-niveis-state';
 const PREFS_KEY = 'quiz-niveis-prefs';
-const LEADERBOARD_KEY = 'quiz-niveis-leaderboard';
 
 export interface LeaderboardEntry {
   name: string;
@@ -50,7 +49,6 @@ type Action =
 function getInitialState(): QuizState {
   const allMembers = getAllMembers();
   const prefs = getStoredValue(PREFS_KEY, { allTimeBestScore: 0, soundEnabled: true, playerName: '' });
-  const leaderboard = getStoredValue<LeaderboardEntry[]>(LEADERBOARD_KEY, []);
   const savedState = getStoredValue<{
     assignments: Record<string, number>;
     shuffledOrder: string[];
@@ -73,7 +71,7 @@ function getInitialState(): QuizState {
     isVerifying: false,
     hasSavedState,
     playerName: prefs.playerName || '',
-    leaderboard,
+    leaderboard: [],
   };
 }
 
@@ -181,17 +179,6 @@ function reducer(state: QuizState, action: Action): QuizState {
       const percentage = Math.round((correctCount / state.allMembers.length) * 100);
       const newAllTimeBest = Math.max(state.allTimeBestScore, percentage);
 
-      // Save to leaderboard
-      const entry: LeaderboardEntry = {
-        name: state.playerName || 'Anónimo',
-        score: percentage,
-        correct: correctCount,
-        total: state.allMembers.length,
-        date: new Date().toISOString(),
-      };
-      const newLeaderboard = [...state.leaderboard, entry]
-        .sort((a, b) => b.score - a.score || new Date(a.date).getTime() - new Date(b.date).getTime());
-
       return {
         ...state,
         lockedNames: result.correctIds,
@@ -200,7 +187,6 @@ function reducer(state: QuizState, action: Action): QuizState {
         allTimeBestScore: newAllTimeBest,
         isVerifying: false,
         screen: 'report',
-        leaderboard: newLeaderboard,
       };
     }
 
@@ -230,14 +216,8 @@ function reducer(state: QuizState, action: Action): QuizState {
     case 'SET_SCREEN':
       return { ...state, screen: action.screen };
 
-    case 'SET_LEADERBOARD': {
-      // Merge server entries with any local-only entries by deduplicating on name+date
-      const seen = new Set(action.entries.map(e => `${e.name}|${e.date}`));
-      const localOnly = state.leaderboard.filter(e => !seen.has(`${e.name}|${e.date}`));
-      const merged = [...action.entries, ...localOnly]
-        .sort((a, b) => b.score - a.score || new Date(a.date).getTime() - new Date(b.date).getTime());
-      return { ...state, leaderboard: merged };
-    }
+    case 'SET_LEADERBOARD':
+      return { ...state, leaderboard: action.entries };
 
     default:
       return state;
@@ -266,10 +246,6 @@ export function useQuizState() {
       playerName: state.playerName,
     });
   }, [state.allTimeBestScore, state.soundEnabled, state.playerName]);
-
-  useEffect(() => {
-    setStoredValue(LEADERBOARD_KEY, state.leaderboard);
-  }, [state.leaderboard]);
 
   const assignName = useCallback((memberId: string, levelId: number) => {
     dispatch({ type: 'ASSIGN_NAME', memberId, levelId });
