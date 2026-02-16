@@ -17,6 +17,8 @@ export interface LeaderboardEntry {
 
 export type Screen = 'welcome' | 'quiz' | 'report';
 
+export type SubmissionStatus = 'pending' | 'success' | 'error' | null;
+
 export interface QuizState {
   screen: Screen;
   assignments: Record<string, number>; // memberId → levelId
@@ -32,6 +34,7 @@ export interface QuizState {
   hasSavedState: boolean;
   playerName: string;
   leaderboard: LeaderboardEntry[];
+  submissionStatus: SubmissionStatus;
 }
 
 type Action =
@@ -44,7 +47,8 @@ type Action =
   | { type: 'RESTART' }
   | { type: 'TOGGLE_SOUND' }
   | { type: 'SET_SCREEN'; screen: Screen }
-  | { type: 'SET_LEADERBOARD'; entries: LeaderboardEntry[] };
+  | { type: 'SET_LEADERBOARD'; entries: LeaderboardEntry[] }
+  | { type: 'SET_SUBMISSION_STATUS'; status: SubmissionStatus };
 
 function getInitialState(): QuizState {
   const allMembers = getAllMembers();
@@ -72,6 +76,7 @@ function getInitialState(): QuizState {
     hasSavedState,
     playerName: prefs.playerName || '',
     leaderboard: [],
+    submissionStatus: null,
   };
 }
 
@@ -111,6 +116,7 @@ function reducer(state: QuizState, action: Action): QuizState {
         lastVerifyResult: null,
         isVerifying: false,
         playerName: action.playerName,
+        submissionStatus: null,
       };
     }
 
@@ -207,6 +213,7 @@ function reducer(state: QuizState, action: Action): QuizState {
         lastVerifyResult: null,
         isVerifying: false,
         hasSavedState: false,
+        submissionStatus: null,
       };
     }
 
@@ -219,6 +226,9 @@ function reducer(state: QuizState, action: Action): QuizState {
     case 'SET_LEADERBOARD':
       return { ...state, leaderboard: action.entries };
 
+    case 'SET_SUBMISSION_STATUS':
+      return { ...state, submissionStatus: action.status };
+
     default:
       return state;
   }
@@ -226,6 +236,7 @@ function reducer(state: QuizState, action: Action): QuizState {
 
 export function useQuizState() {
   const [state, dispatch] = useReducer(reducer, undefined, getInitialState);
+  const submissionIdRef = useRef<string | null>(null);
 
   // Persist quiz state
   useEffect(() => {
@@ -267,10 +278,35 @@ export function useQuizState() {
     dispatch({ type: 'VERIFY_COMPLETE' });
   }, []);
 
+  const doSubmitScore = useCallback(async (entry: LeaderboardEntry) => {
+    if (!submissionIdRef.current) {
+      submissionIdRef.current = crypto.randomUUID();
+    }
+
+    dispatch({ type: 'SET_SUBMISSION_STATUS', status: 'pending' });
+
+    const result = await submitScore(entry, submissionIdRef.current);
+
+    if (result.success) {
+      dispatch({ type: 'SET_SUBMISSION_STATUS', status: 'success' });
+    } else {
+      dispatch({ type: 'SET_SUBMISSION_STATUS', status: 'error' });
+    }
+
+    // Refresh leaderboard regardless
+    const entries = await fetchLeaderboard();
+    if (entries) dispatch({ type: 'SET_LEADERBOARD', entries });
+  }, []);
+
   // After VERIFY_COMPLETE, submit score to server and refresh leaderboard
   const prevScreenRef = useRef(state.screen);
+  const entryRef = useRef<LeaderboardEntry | null>(null);
+
   useEffect(() => {
     if (prevScreenRef.current !== 'report' && state.screen === 'report' && state.lastVerifyResult) {
+      // Generate new submissionId for this quiz attempt
+      submissionIdRef.current = crypto.randomUUID();
+
       const entry: LeaderboardEntry = {
         name: state.playerName || 'Anónimo',
         score: state.scorePercentage,
@@ -278,15 +314,17 @@ export function useQuizState() {
         total: state.allMembers.length,
         date: new Date().toISOString(),
       };
-      // Fire-and-forget: submit then refresh
-      submitScore(entry).then(() => {
-        fetchLeaderboard().then(entries => {
-          if (entries) dispatch({ type: 'SET_LEADERBOARD', entries });
-        });
-      });
+      entryRef.current = entry;
+      doSubmitScore(entry);
     }
     prevScreenRef.current = state.screen;
-  }, [state.screen, state.lastVerifyResult, state.playerName, state.scorePercentage, state.currentScore, state.allMembers.length]);
+  }, [state.screen, state.lastVerifyResult, state.playerName, state.scorePercentage, state.currentScore, state.allMembers.length, doSubmitScore]);
+
+  const retrySubmission = useCallback(() => {
+    if (entryRef.current) {
+      doSubmitScore(entryRef.current);
+    }
+  }, [doSubmitScore]);
 
   const refreshLeaderboard = useCallback(() => {
     fetchLeaderboard().then(entries => {
@@ -295,6 +333,8 @@ export function useQuizState() {
   }, []);
 
   const restart = useCallback(() => {
+    submissionIdRef.current = null;
+    entryRef.current = null;
     dispatch({ type: 'RESTART' });
   }, []);
 
@@ -340,5 +380,6 @@ export function useQuizState() {
     assignedCount,
     totalMembers,
     refreshLeaderboard,
+    retrySubmission,
   };
 }

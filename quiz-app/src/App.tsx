@@ -20,6 +20,7 @@ function App() {
     assignedCount,
     totalMembers,
     refreshLeaderboard,
+    retrySubmission,
   } = useQuizState();
 
   // Fetch global leaderboard on mount
@@ -68,7 +69,9 @@ function App() {
           scorePercentage={state.scorePercentage}
           playerName={state.playerName}
           leaderboard={state.leaderboard}
+          submissionStatus={state.submissionStatus}
           onRestart={restart}
+          onRetrySubmission={retrySubmission}
         />
       )}
     </>

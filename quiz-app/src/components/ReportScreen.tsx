@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import ReportModal from './ReportModal';
-import type { LeaderboardEntry } from '../hooks/useQuizState';
+import type { LeaderboardEntry, SubmissionStatus } from '../hooks/useQuizState';
 import { launchConfetti } from '../utils/confetti';
 
 interface ReportScreenProps {
@@ -9,7 +9,9 @@ interface ReportScreenProps {
   scorePercentage: number;
   playerName: string;
   leaderboard: LeaderboardEntry[];
+  submissionStatus: SubmissionStatus;
   onRestart: () => void;
+  onRetrySubmission: () => void;
 }
 
 export default function ReportScreen({
@@ -18,7 +20,9 @@ export default function ReportScreen({
   scorePercentage,
   playerName,
   leaderboard,
+  submissionStatus,
   onRestart,
+  onRetrySubmission,
 }: ReportScreenProps) {
   const [showReport, setShowReport] = useState(false);
   const isPerfect = scorePercentage === 100;
@@ -90,6 +94,24 @@ export default function ReportScreen({
 
       {/* Leaderboard + Action buttons */}
       <div className="w-full flex flex-col gap-3 pb-4">
+        {/* Submission feedback */}
+        {submissionStatus === 'pending' && (
+          <div className="text-center text-xs text-text-muted animate-pulse py-1">
+            A enviar...
+          </div>
+        )}
+        {submissionStatus === 'error' && (
+          <div className="flex items-center justify-center gap-2 py-1">
+            <span className="text-xs text-red-400">Erro ao enviar.</span>
+            <button
+              onClick={onRetrySubmission}
+              className="text-xs text-gold underline underline-offset-2"
+            >
+              Tentar novamente?
+            </button>
+          </div>
+        )}
+
         {/* Ranking */}
         {leaderboard.length > 0 && (
           <div className="bg-bg-secondary/80 backdrop-blur rounded-xl p-4 border border-gold-dim/20 w-full">

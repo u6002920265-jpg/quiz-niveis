@@ -20,6 +20,13 @@ npm run preview   # Preview production build locally
 
 No test framework is configured.
 
+For local development with the leaderboard server:
+
+```bash
+cd server && npm start   # Express leaderboard server on :3001
+# Then in quiz-app, set VITE_API_URL=http://localhost:3001 before npm run dev
+```
+
 ## Tech Stack
 
 - **React 19** + **TypeScript** + **Vite 7** + **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
@@ -27,7 +34,8 @@ No test framework is configured.
 - **marked** for rendering the report markdown (`public/report.md`) as HTML
 - **Web Audio API** for synthesized sound effects (no audio files)
 - **Canvas API** for confetti animation (`src/utils/confetti.ts`)
-- Deploy target: **Vercel** (static site, no `vercel.json` — uses defaults)
+- **@vercel/blob** for production leaderboard persistence
+- Deploy target: **Vercel** (static frontend + serverless API function)
 
 ## Architecture
 
@@ -54,6 +62,17 @@ The circle geometry constants (`CIRCLE_CX`, `CIRCLE_CY`, `CIRCLE_R`, `IMG_W`, `I
 ### Sound & Haptics
 
 `src/utils/sound.ts` generates all sounds programmatically via Web Audio API oscillators (no audio files). Haptics use `navigator.vibrate()` which silently fails on iOS Safari.
+
+### Leaderboard API
+
+Two backend implementations exist for the leaderboard:
+
+- **Production (Vercel):** `quiz-app/api/leaderboard.js` — Vercel serverless function using `@vercel/blob` for storage. Deployed automatically with the Vercel project.
+- **Local development:** `server/index.js` — Express.js server on port 3001, reads/writes `server/data/leaderboard.json`.
+
+The frontend API client (`src/utils/api.ts`) uses `VITE_API_URL` env var to determine the base URL. When empty (production on Vercel), API calls go to the same origin (`/api/leaderboard`). For local dev with the Express server, set `VITE_API_URL=http://localhost:3001`.
+
+Both endpoints support GET (top 50 sorted by score desc, then date asc) and POST (with validation for name, score, correct, total, date fields).
 
 ### Verification & Report Flow
 
