@@ -24,8 +24,10 @@ No test framework is configured.
 
 - **React 19** + **TypeScript** + **Vite 7** + **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)
 - **dnd-kit** for drag-and-drop (touch + mouse sensors)
+- **marked** for rendering the report markdown (`public/report.md`) as HTML
 - **Web Audio API** for synthesized sound effects (no audio files)
-- Deploy target: **Vercel** (static site)
+- **Canvas API** for confetti animation (`src/utils/confetti.ts`)
+- Deploy target: **Vercel** (static site, no `vercel.json` — uses defaults)
 
 ## Architecture
 
@@ -53,9 +55,23 @@ The circle geometry constants (`CIRCLE_CX`, `CIRCLE_CY`, `CIRCLE_R`, `IMG_W`, `I
 
 `src/utils/sound.ts` generates all sounds programmatically via Web Audio API oscillators (no audio files). Haptics use `navigator.vibrate()` which silently fails on iOS Safari.
 
+### Verification & Report Flow
+
+Auto-verify triggers when all 21 names are assigned. Score ≥90% unlocks the detailed report (`ReportModal`), which fetches `/report.md` and renders it via `marked`. Perfect score (100%) triggers a canvas confetti animation. Scoring logic is in `src/utils/scoring.ts`.
+
+### Styling
+
+Tailwind CSS v4 with custom `@theme` colors defined in `src/index.css` (dark brown background `#1a1008`, gold accent `#d4a34a`). Custom keyframe animations (pulse-green, fly-back, fade-in, slide-up, glow) are also in `index.css`. No `tailwind.config.js` — everything is configured inline.
+
 ### Key Design Constraints
 
-- Locked to ~390px width (mobile-only, portrait forced)
+- Locked to ~390px width (mobile-only, portrait forced via `LandscapeBlocker`)
 - Touch sensor has 150ms delay to disambiguate drag vs scroll
 - Each level slice has a max capacity enforced by the reducer
 - `nivel.png` is used as background image; overlay divs with `backdrop-filter: blur()` hide the answer text
+- All UI text is in Portuguese (PT-PT)
+
+## Reference Docs
+
+- `SPEC.md` — Full product specification (in Portuguese) with level definitions, screen layouts, and scoring rules
+- `TEAM-REVIEW.md` — Team review notes and architectural decisions
