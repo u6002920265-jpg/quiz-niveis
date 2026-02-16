@@ -237,7 +237,7 @@ export default function QuizScreen({
         {/* Drag overlay — pill follows finger */}
         <DragOverlay dropAnimation={null}>
           {activeMember ? (
-            <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gold/30 text-gold border border-gold/50 shadow-lg shadow-gold/20 scale-85 opacity-90">
+            <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gold/30 text-gold border border-gold/50 shadow-lg shadow-gold/20 scale-85 opacity-90">
               <span className="truncate max-w-[140px]">{activeMember.name}</span>
             </div>
           ) : null}

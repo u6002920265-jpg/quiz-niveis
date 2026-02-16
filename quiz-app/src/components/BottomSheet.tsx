@@ -53,7 +53,7 @@ export default function BottomSheet({
               return (
                 <div
                   key={member.id}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     isLocked
                       ? 'bg-green-lock/20 text-green-lock border border-green-lock/40'
                       : 'bg-gold/15 text-gold border border-gold/30'

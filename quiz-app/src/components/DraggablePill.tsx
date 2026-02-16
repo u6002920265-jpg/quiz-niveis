@@ -20,7 +20,7 @@ export default function DraggablePill({ id, name, isLocked, isAnimatingBack }: D
       {...attributes}
       style={{ opacity: isDragging ? 0.3 : 1 }}
       className={`
-        inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium
+        inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium
         select-none cursor-grab active:cursor-grabbing
         transition-opacity duration-150
         touch-none
