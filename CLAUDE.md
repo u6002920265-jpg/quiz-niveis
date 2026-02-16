@@ -34,7 +34,7 @@ cd server && npm start   # Express leaderboard server on :3001
 - **marked** for rendering the report markdown (`public/report.md`) as HTML
 - **Web Audio API** for synthesized sound effects (no audio files)
 - **Canvas API** for confetti animation (`src/utils/confetti.ts`)
-- **@vercel/blob** for production leaderboard persistence
+- **@vercel/kv** (Upstash Redis) for production leaderboard persistence
 - Deploy target: **Vercel** (static frontend + serverless API function)
 
 ## Architecture
@@ -67,12 +67,12 @@ The circle geometry constants (`CIRCLE_CX`, `CIRCLE_CY`, `CIRCLE_R`, `IMG_W`, `I
 
 Two backend implementations exist for the leaderboard:
 
-- **Production (Vercel):** `quiz-app/api/leaderboard.js` — Vercel serverless function using `@vercel/blob` for storage. Deployed automatically with the Vercel project.
+- **Production (Vercel):** `quiz-app/api/leaderboard.js` — Vercel serverless function using `@vercel/kv` (Upstash Redis) with sorted sets for atomic leaderboard operations. Scores are stored in a Redis sorted set (`leaderboard:scores`) with a composite score encoding (score DESC + date ASC). Entry data is stored in Redis hashes (`leaderboard:entry:{id}`). Deployed automatically with the Vercel project. Requires `KV_REST_API_URL` and `KV_REST_API_TOKEN` env vars (auto-set by Vercel KV/Upstash integration).
 - **Local development:** `server/index.js` — Express.js server on port 3001, reads/writes `server/data/leaderboard.json`.
 
 The frontend API client (`src/utils/api.ts`) uses `VITE_API_URL` env var to determine the base URL. When empty (production on Vercel), API calls go to the same origin (`/api/leaderboard`). For local dev with the Express server, set `VITE_API_URL=http://localhost:3001`.
 
-Both endpoints support GET (top 50 sorted by score desc, then date asc) and POST (with validation for name, score, correct, total, date fields).
+Both endpoints support GET (top 50 sorted by score desc, then date asc) and POST (with validation for name, score, correct, total, date fields). POST accepts an optional `submissionId` for client-side duplicate prevention. The frontend tracks submission status (`pending`/`success`/`error`) and exposes a retry mechanism in `ReportScreen`.
 
 ### Verification & Report Flow
 
