@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuizState } from './hooks/useQuizState';
 import WelcomeScreen from './components/WelcomeScreen';
 import QuizScreen from './components/QuizScreen';
@@ -18,7 +19,13 @@ function App() {
     poolMembers,
     assignedCount,
     totalMembers,
+    refreshLeaderboard,
   } = useQuizState();
+
+  // Fetch global leaderboard on mount
+  useEffect(() => {
+    refreshLeaderboard();
+  }, [refreshLeaderboard]);
 
   return (
     <>

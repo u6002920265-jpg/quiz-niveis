@@ -1,7 +1,8 @@
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { getAllMembers, shuffleArray, getLevels, type Member } from '../data/quizData';
 import { verifyAssignments, type VerifyResult } from '../utils/scoring';
 import { getStoredValue, setStoredValue, removeStoredValue } from './useLocalStorage';
+import { submitScore, fetchLeaderboard } from '../utils/api';
 
 const QUIZ_STATE_KEY = 'quiz-niveis-state';
 const PREFS_KEY = 'quiz-niveis-prefs';
@@ -43,7 +44,8 @@ type Action =
   | { type: 'SHOW_REPORT' }
   | { type: 'RESTART' }
   | { type: 'TOGGLE_SOUND' }
-  | { type: 'SET_SCREEN'; screen: Screen };
+  | { type: 'SET_SCREEN'; screen: Screen }
+  | { type: 'SET_LEADERBOARD'; entries: LeaderboardEntry[] };
 
 function getInitialState(): QuizState {
   const allMembers = getAllMembers();
@@ -228,6 +230,15 @@ function reducer(state: QuizState, action: Action): QuizState {
     case 'SET_SCREEN':
       return { ...state, screen: action.screen };
 
+    case 'SET_LEADERBOARD': {
+      // Merge server entries with any local-only entries by deduplicating on name+date
+      const seen = new Set(action.entries.map(e => `${e.name}|${e.date}`));
+      const localOnly = state.leaderboard.filter(e => !seen.has(`${e.name}|${e.date}`));
+      const merged = [...action.entries, ...localOnly]
+        .sort((a, b) => b.score - a.score || new Date(a.date).getTime() - new Date(b.date).getTime());
+      return { ...state, leaderboard: merged };
+    }
+
     default:
       return state;
   }
@@ -280,6 +291,33 @@ export function useQuizState() {
     dispatch({ type: 'VERIFY_COMPLETE' });
   }, []);
 
+  // After VERIFY_COMPLETE, submit score to server and refresh leaderboard
+  const prevScreenRef = useRef(state.screen);
+  useEffect(() => {
+    if (prevScreenRef.current !== 'report' && state.screen === 'report' && state.lastVerifyResult) {
+      const entry: LeaderboardEntry = {
+        name: state.playerName || 'Anónimo',
+        score: state.scorePercentage,
+        correct: state.currentScore,
+        total: state.allMembers.length,
+        date: new Date().toISOString(),
+      };
+      // Fire-and-forget: submit then refresh
+      submitScore(entry).then(() => {
+        fetchLeaderboard().then(entries => {
+          if (entries) dispatch({ type: 'SET_LEADERBOARD', entries });
+        });
+      });
+    }
+    prevScreenRef.current = state.screen;
+  }, [state.screen, state.lastVerifyResult, state.playerName, state.scorePercentage, state.currentScore, state.allMembers.length]);
+
+  const refreshLeaderboard = useCallback(() => {
+    fetchLeaderboard().then(entries => {
+      if (entries) dispatch({ type: 'SET_LEADERBOARD', entries });
+    });
+  }, []);
+
   const restart = useCallback(() => {
     dispatch({ type: 'RESTART' });
   }, []);
@@ -325,5 +363,6 @@ export function useQuizState() {
     isNameLocked,
     assignedCount,
     totalMembers,
+    refreshLeaderboard,
   };
 }
